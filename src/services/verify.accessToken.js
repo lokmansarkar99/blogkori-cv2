@@ -1,18 +1,24 @@
-import jwt from "jsonwebtoken";
-import { cookies } from "next/headers";
-
 export async function isUser() {
-  const cookiesStore = await cookies();
-  const token = cookiesStore.get("accessToken")?.value;
-
   try {
+    const cookiesStore = await cookies();
+    const token = cookiesStore.get("accessToken")?.value;
+
+    //  Check if token exists
+    if (!token) {
+      return {
+        success: false,
+        message: "No access token"
+      };
+    }
+
+    // Verify token
     const user = jwt.verify(token, process.env.ACCESS_SECRET);
     return { success: true, user };
   } catch (error) {
-    console.log("jwt verification faild in client");
+    console.error("JWT verification failed:", error.message);
     return {
       success: false,
-      message: "jwt verification faild in client"
+      message: "JWT verification failed"
     };
   }
 }
