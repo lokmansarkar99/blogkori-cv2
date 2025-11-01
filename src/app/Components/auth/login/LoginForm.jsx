@@ -25,10 +25,17 @@ function LoginForm() {
           setError(result.message);
           toast.error(result.message);
         }
-        // If no result, redirect happened successfully
+        // If no result returned, redirect happened successfully - do nothing
       } catch (err) {
+        //  FIXED: Ignore NEXT_REDIRECT error (it's not actually an error)
+        if (err?.message === 'NEXT_REDIRECT' || err?.digest?.startsWith('NEXT_REDIRECT')) {
+          console.log(' Redirect in progress...');
+          return; // Don't show error, redirect is working
+        }
+        
+        // Only show error for actual errors
         console.error('Submit error:', err);
-        const errorMessage = 'An unexpected error occurred';
+        const errorMessage = err.message || 'An unexpected error occurred';
         setError(errorMessage);
         toast.error(errorMessage);
       }

@@ -4,23 +4,30 @@ import { isUser } from "@/services/verify.accessToken";
 import { redirect } from "next/navigation";
 
 export default async function LoginPage() {
-  //  Only check once, with proper error handling
-  try {
-    const getUser = await isUser();
+  console.log('🔍 [LOGIN PAGE] Starting auth check...');
+  
+  //  Check authentication
+  const authResult = await isUser();
+  
+  console.log('🔍 [LOGIN PAGE] Auth result:', {
+    success: authResult.success,
+    hasUser: !!authResult.user,
+    role: authResult.user?.role
+  });
+
+  //  Only redirect if actually authenticated
+  if (authResult?.success && authResult?.user) {
+    console.log(' [LOGIN PAGE] User authenticated, redirecting...');
     
-    // Only redirect if actually authenticated
-    if (getUser?.success && getUser?.user) {
-      if (getUser.user.role === "admin") {
-        redirect("/admin");
-      } else if (getUser.user.role === "user") {
-        redirect("/user");
-      }
+    if (authResult.user.role === "admin") {
+      redirect("/admin");
+    } else {
+      redirect("/user");
     }
-  } catch (error) {
-    // If auth check fails, just show login page
-    console.log("Auth check failed, showing login page");
   }
 
+  console.log('📄 [LOGIN PAGE] Showing login form');
+  
   return (
     <LoginComponent>
       <LoginForm />

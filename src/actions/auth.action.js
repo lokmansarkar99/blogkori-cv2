@@ -16,20 +16,26 @@ export async function loginAction(formData) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
+      cache: 'no-store'
     });
 
     const data = await response.json();
-    console.log('📡 [SERVER ACTION] Backend response:', { success: data.success, hasToken: !!data.accessToken });
+    console.log('📡 [SERVER ACTION] Backend response:', { 
+      success: data.success, 
+      hasToken: !!data.accessToken,
+      role: data.user?.role
+    });
 
     if (!response.ok || !data?.success) {
+      console.error('❌ [SERVER ACTION] Login failed:', data.message);
       return { 
         success: false, 
         message: data?.message || 'Login failed' 
       };
     }
 
-    //  Set cookie on Next.js SERVER (not backend!)
+    //  Set cookie on Next.js SERVER
     const cookieStore = await cookies();
     const isProduction = process.env.NODE_ENV === 'production';
     
@@ -41,19 +47,25 @@ export async function loginAction(formData) {
       maxAge: 24 * 60 * 60
     });
 
-    console.log('🍪 [SERVER ACTION] Cookie set on Next.js server');
+    console.log('🍪 [SERVER ACTION] Cookie set successfully');
 
-    //  Server-side redirect (no timing issues!)
-    console.log('🚀 [SERVER ACTION] Redirecting to:', data.user?.role === "admin" ? "/admin" : "/user");
+    //  Add small delay to ensure cookie is written
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    //  Redirect based on role
+    const redirectPath = data.user?.role === "admin" ? "/admin" : "/user";
+    console.log('🚀 [SERVER ACTION] Redirecting to:', redirectPath);
     
-    if (data.user?.role === "admin") {
-      redirect("/admin");
-    } else {
-      redirect("/user");
-    }
+    redirect(redirectPath);
 
   } catch (error) {
-    console.error('❌ [SERVER ACTION] Login error:', error);
+    //  Handle redirect error separately
+    if (error.message === 'NEXT_REDIRECT') {
+      console.log(' [SERVER ACTION] Redirect initiated');
+      throw error; // Re-throw to let Next.js handle it
+    }
+    
+    console.error('❌ [SERVER ACTION] Login error:', error.message);
     return { 
       success: false, 
       message: error.message || 'An error occurred' 
